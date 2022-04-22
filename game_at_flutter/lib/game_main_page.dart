@@ -1,10 +1,14 @@
-import 'package:flame/input.dart';
-import 'package:flutter/material.dart';
-
 import 'dart:math' as math;
 
+import 'package:flutter/material.dart';
+
+import 'package:flame/input.dart';
 import 'package:flame/game.dart';
 import 'package:flame/palette.dart';
+import 'package:flame/components.dart';
+
+import 'common/my_sprite.dart';
+import 'common/my_joystick_controller.dart';
 
 /// ゲームメイン
 class GameMainPage extends StatefulWidget {
@@ -15,42 +19,70 @@ class GameMainPage extends StatefulWidget {
 }
 
 class _GameMainPageState extends State<GameMainPage> {
+  final MyGameMain myGameMain = MyGameMain();
   @override
   Widget build(BuildContext context) {
-    /*
-    return Container(
-      child: const Text(
-        "メインページ",
-        style: TextStyle(fontSize: 30, color: Colors.white),
+    return GameWidget(
+      game: myGameMain,
+      loadingBuilder: (context) => const Center(
+        child: CircularProgressIndicator(),
       ),
     );
-    */
-    return GameWidget(game: MyGameMain());
   }
 }
 
 /// Flameを使ったゲーム駆動
-class MyGameMain extends FlameGame with DoubleTapDetector, HasTappables {
+class MyGameMain extends FlameGame
+    with DoubleTapDetector, HasTappables, HasDraggables {
   double x_pos = 0.0;
   double x_count = 0.0;
   double velocity = 5.0;
 
+  // プレイヤースプライト
+  MySprite? playerSprite = null;
+  // ジョイスティック
+  MyJoystickController? myJoystickController = null;
+
+  MyGameMain() : super();
+
+  /// 読み込み処理
+  ///
+  @override
+  Future<void>? onLoad() async {
+    // プレイヤーオブジェクト
+    playerSprite = new MySprite("character/player.png", Vector2(32.0, 32.0));
+    add(playerSprite!);
+    playerSprite!.GetPos(Vector2(100, 100));
+
+    // ジョイスティック操作
+    myJoystickController = new MyJoystickController(
+      BasicPalette.white.withAlpha(200).paint(),
+      BasicPalette.white.withAlpha(100).paint(),
+    );
+    add(myJoystickController!);
+
+    await super.onLoad();
+  }
+
+/*
   /// 描画処理
   /// [canvas] キャンバスオブジェクト
   @override
   void render(Canvas canvas) {
+    super.render(canvas);
     // テスト表示
     canvas.drawRect(size.toRect(), BasicPalette.white.paint()); // 全体表示
     canvas.drawRect(Rect.fromLTWH(x_pos, 50, 50, 50),
         BasicPalette.green.paint()); // 座標と大きさ指定表示
   }
-
+*/
   /// 更新処理
   @override
   void update(double dt) {
     super.update(dt);
-    x_count += velocity;
-    x_pos = 100.0 + (25.0 * math.sin((math.pi / 360.0) * x_count));
-    //x_pos += 1.0;
+    if (myJoystickController!.delta.isZero() != true) {
+      // スティックが倒されている
+      playerSprite!.SetMove((myJoystickController!.delta) * dt);
+    }
   }
 }
