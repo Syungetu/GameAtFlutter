@@ -11,7 +11,7 @@ class MySprite extends SpriteAnimationComponent with HasGameRef {
   double animationSpeed = 0.15;
   // 1フレームのスプライトサイズ
   Vector2 spritSize = Vector2(32.0, 32.0);
-  // スクリプト本体
+  // スプライト本体
   SpriteSheet? playerSprite = null;
   // 下向きモーション（画像差分）
   SpriteAnimation? downSpriteAnimation = null;

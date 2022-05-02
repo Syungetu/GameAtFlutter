@@ -56,9 +56,11 @@ class MyGameMain extends FlameGame
 
     // ジョイスティック操作
     myJoystickController = new MyJoystickController(
-      BasicPalette.white.withAlpha(200).paint(),
-      BasicPalette.white.withAlpha(100).paint(),
-    );
+        knobRadius: 30.0,
+        knobPaint: BasicPalette.white.withAlpha(200).paint(),
+        backgroundRadius: 100.0,
+        backgroundPaint: BasicPalette.white.withAlpha(100).paint(),
+        margin: EdgeInsets.only(left: 40.0, bottom: 40.0));
     add(myJoystickController!);
 
     await super.onLoad();
