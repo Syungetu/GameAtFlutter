@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 /// ジョイスティック操作管理
 class MyJoystickController extends JoystickComponent {
+  double backgroundRadius = 100.0;
+
   /// コンストラクタ
   /// [knobRadius] スティックの大きさ
   /// [knobPaint] スティックの色
@@ -14,7 +16,7 @@ class MyJoystickController extends JoystickComponent {
   MyJoystickController(
       {double knobRadius = 30.0,
       Paint? knobPaint,
-      double backgroundRadius = 100.0,
+      backgroundRadius = 100.0,
       Paint? backgroundPaint,
       EdgeInsets? margin})
       : super(
@@ -23,4 +25,16 @@ class MyJoystickController extends JoystickComponent {
           knob: CircleComponent(radius: knobRadius, paint: knobPaint),
           margin: margin,
         );
+
+  /// 傾きを0～１の値で出力する
+  Vector2 GetValue() {
+    Vector2 value = Vector2.zero();
+    if (delta.x != 0.0) {
+      value.x = delta.x / backgroundRadius;
+    }
+    if (delta.y != 0.0) {
+      value.y = delta.y / backgroundRadius;
+    }
+    return value;
+  }
 }

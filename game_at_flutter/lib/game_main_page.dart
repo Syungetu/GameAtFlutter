@@ -1,14 +1,16 @@
 import 'dart:math' as math;
 
+import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flame/input.dart';
 import 'package:flame/game.dart';
 import 'package:flame/palette.dart';
-import 'package:flame/components.dart';
 
 import 'common/my_sprite.dart';
 import 'common/my_joystick_controller.dart';
+import 'common/my_text.dart';
+import 'common/my_map_chip.dart';
 
 /// ゲームメイン
 class GameMainPage extends StatefulWidget {
@@ -33,13 +35,19 @@ class _GameMainPageState extends State<GameMainPage> {
 
 /// Flameを使ったゲーム駆動
 class MyGameMain extends FlameGame
-    with DoubleTapDetector, HasTappables, HasDraggables {
+    with DoubleTapDetector, HasTappables, HasDraggables, HasCollisionDetection {
   double x_pos = 0.0;
   double x_count = 0.0;
   double velocity = 5.0;
 
   // プレイヤースプライト
   MySprite? playerSprite = null;
+  // プレイヤースプライト
+  MySprite? otherSprite = null;
+  // デバッグ用テキスト
+  MyText? debugText = null;
+  // マップチップ
+  MyMapChip? mapChip = null;
   // ジョイスティック
   MyJoystickController? myJoystickController = null;
 
@@ -49,10 +57,30 @@ class MyGameMain extends FlameGame
   ///
   @override
   Future<void>? onLoad() async {
+    // マップチップ
+    mapChip = new MyMapChip(
+      this,
+      "maptmx.tmx",
+      "BaseChip_pipo.png",
+      Vector2(32.0, 32.0),
+      hitLayerName: "grund",
+    );
+    add(mapChip!);
+
     // プレイヤーオブジェクト
     playerSprite = new MySprite("character/player.png", Vector2(32.0, 32.0));
     add(playerSprite!);
-    playerSprite!.GetPos(Vector2(100, 100));
+    playerSprite!.GetPos(Vector2(469, 469));
+
+    otherSprite = new MySprite("character/enemy.png", Vector2(32.0, 32.0));
+    add(otherSprite!);
+    otherSprite!.GetPos(Vector2(500, 600));
+
+    debugText = new MyText(new TextBoxConfig(
+      maxWidth: 1080,
+    ));
+    debugText!.SetText("test", Colors.white, 24.0);
+    add(debugText!);
 
     // ジョイスティック操作
     myJoystickController = new MyJoystickController(
@@ -84,7 +112,15 @@ class MyGameMain extends FlameGame
     super.update(dt);
     if (myJoystickController!.delta.isZero() != true) {
       // スティックが倒されている
-      playerSprite!.SetMove((myJoystickController!.delta) * dt);
+      playerSprite!.SetMove((myJoystickController!.GetValue() * 10.0));
     }
+
+    String tt = "FPS:" + (6.0 / dt).toStringAsFixed(2) + "\n";
+    tt += "Player " + myJoystickController!.GetValue().toString() + "\n";
+    tt += "Enemy " + otherSprite!.GetDebugText() + "\n";
+    debugText!.SetText(tt, Colors.white, 21.0);
+
+    // カメラ設定
+    camera.followComponent(playerSprite!);
   }
 }

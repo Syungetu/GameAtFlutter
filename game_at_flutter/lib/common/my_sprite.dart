@@ -3,8 +3,13 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/sprite.dart';
+import 'package:flame/collisions.dart';
+import 'package:flame/geometry.dart';
+import 'package:flame/palette.dart';
 
-class MySprite extends SpriteAnimationComponent with HasGameRef {
+/// アニメーション付きのスプライト表示
+class MySprite extends SpriteAnimationComponent
+    with HasGameRef, CollisionCallbacks {
   // 画像パス
   String imagePath = "";
   // モーションの切り替えタイミング
@@ -21,6 +26,17 @@ class MySprite extends SpriteAnimationComponent with HasGameRef {
   SpriteAnimation? rightSpriteAnimation = null;
   // 上向きモーション（画像差分）
   SpriteAnimation? upSpriteAnimation = null;
+  // 当たり判定
+  late RectangleHitbox hitBox;
+  // 移動速度
+  Vector2 verocity = Vector2.zero();
+  // 何かにあたっているかどうか
+  bool isCollisionHit = false;
+  // 前フレームの座標バッファ
+  Vector2 buffPosition = Vector2.zero();
+
+  // デバッグ用テキスト
+  String debugText = "";
 
   /// コンストラクタ
   /// [imagePath] 表示したい画像パスを入力
@@ -51,6 +67,17 @@ class MySprite extends SpriteAnimationComponent with HasGameRef {
     animation = upSpriteAnimation;
     size = spritSize;
 
+    // 当たり判定を設定
+    hitBox = RectangleHitbox(
+      position: Vector2.zero(),
+      size: spritSize,
+    );
+    // hitBox.renderShape = true;
+    // hitBox.paint = BasicPalette.green.withAlpha(100).paint();
+    add(hitBox);
+
+    buffPosition = Vector2.zero();
+
     print("Load Image : " + imagePath);
     await super.onLoad();
   }
@@ -59,6 +86,15 @@ class MySprite extends SpriteAnimationComponent with HasGameRef {
   @override
   void update(double dt) {
     super.update(dt);
+    // 更新速度
+    double updateSpeed = 10.0 * dt;
+
+    // 移動
+    if (isCollisionHit == false) {
+      position += verocity * updateSpeed;
+    }
+    verocity = Vector2.zero();
+    isCollisionHit = false;
   }
 
   /// 座標を変更する
@@ -69,25 +105,86 @@ class MySprite extends SpriteAnimationComponent with HasGameRef {
 
   /// 移動させる
   /// [verocity] 移動向き
-  void SetMove(Vector2 verocity) {
-    position += verocity;
+  void SetMove(Vector2 v) {
+    verocity = v;
 
-    if (verocity.x.abs() > verocity.y.abs()) {
-      if (verocity.x > 0.0) {
+    if (v.x.abs() > v.y.abs()) {
+      if (v.x > 0.0) {
         // 右に進んでいる
         animation = rightSpriteAnimation;
-      } else if (verocity.x < 0.0) {
+      } else if (v.x < 0.0) {
         // 左に進んでいる
         animation = leftSpriteAnimation;
       }
     } else {
-      if (verocity.y < 0.0) {
+      if (v.y < 0.0) {
         // 上に進んでいる
         animation = upSpriteAnimation;
-      } else if (verocity.y > 0.0) {
+      } else if (v.y > 0.0) {
         // 下に進んでいる
         animation = downSpriteAnimation;
       }
     }
+  }
+
+  /// 当たり判定コールバック
+  /// [intersectionPoints] 接触箇所
+  /// [other] 衝突した相手のオブジェクト
+  @override
+  void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
+    super.onCollision(intersectionPoints, other);
+
+    isCollisionHit = false;
+
+    Vector2 dis =
+        ((other.position + other.size) - (position + spritSize)).normalized();
+
+    intersectionPoints.forEach((pos) {
+      Vector2 overlapDistance = Vector2.zero();
+      if (dis.x.abs() < dis.y.abs()) {
+        if ((position.y + spritSize.y) > other.position.y &&
+            position.y < other.position.y) {
+          // 上
+          overlapDistance.y = (pos.y - other.position.y);
+        } else if (position.y < (other.position.y + other.size.y) &&
+            position.y > other.position.y) {
+          // 下
+          overlapDistance.y = (position.y - pos.y);
+        }
+      } else if (dis.x.abs() > dis.y.abs()) {
+        if ((position.x + spritSize.x) > other.position.x &&
+            position.x < other.position.x) {
+          // 左
+          overlapDistance.x = (pos.x - other.position.x);
+        } else if (position.x < (other.position.x + other.size.x) &&
+            position.x > other.position.x) {
+          // 右
+          overlapDistance.x = (position.x - pos.x);
+        }
+      }
+      position -= overlapDistance;
+      print("over:" + overlapDistance.toString());
+    });
+  }
+
+  /// 当たり判定開始コールバック
+  /// [intersectionPoints] 接触箇所
+  /// [other] 衝突した相手のオブジェクト
+  @override
+  void onCollisionStart(
+      Set<Vector2> intersectionPoints, PositionComponent other) {
+    super.onCollisionStart(intersectionPoints, other);
+  }
+
+  /// 当たり判定終了コールバック
+  /// [other] 衝突した相手のオブジェクト
+  @override
+  void onCollisionEnd(PositionComponent other) {
+    super.onCollisionEnd(other);
+  }
+
+  /// デバッグ用にテキストを返す
+  String GetDebugText() {
+    return debugText;
   }
 }
