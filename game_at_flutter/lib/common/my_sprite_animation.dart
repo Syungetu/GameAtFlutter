@@ -8,7 +8,7 @@ import 'package:flame/geometry.dart';
 import 'package:flame/palette.dart';
 
 /// アニメーション付きのスプライト表示
-class MySprite extends SpriteAnimationComponent
+class MySpriteAnimation extends SpriteAnimationComponent
     with HasGameRef, CollisionCallbacks {
   // 画像パス
   String imagePath = "";
@@ -34,13 +34,16 @@ class MySprite extends SpriteAnimationComponent
   bool isCollisionHit = false;
   // 前フレームの座標バッファ
   Vector2 buffPosition = Vector2.zero();
+  // 適応させる座標系
+  PositionType posType = PositionType.game;
 
   // デバッグ用テキスト
   String debugText = "";
 
   /// コンストラクタ
   /// [imagePath] 表示したい画像パスを入力
-  MySprite(this.imagePath, this.spritSize, {this.animationSpeed = 0.15});
+  MySpriteAnimation(this.imagePath, this.spritSize,
+      {this.animationSpeed = 0.15, this.posType = PositionType.game});
 
   /// 読み込み処理
   ///
@@ -74,9 +77,11 @@ class MySprite extends SpriteAnimationComponent
     );
     // hitBox.renderShape = true;
     // hitBox.paint = BasicPalette.green.withAlpha(100).paint();
-    add(hitBox);
+    await add(hitBox);
 
     buffPosition = Vector2.zero();
+
+    positionType = posType;
 
     print("Load Image : " + imagePath);
     await super.onLoad();
@@ -101,6 +106,12 @@ class MySprite extends SpriteAnimationComponent
   /// [pos] Vector2型の座標
   void GetPos(Vector2 pos) {
     position = pos;
+  }
+
+  /// 座標を取得する
+  /// [return] Vector2型の座標
+  Vector2 SetPos() {
+    return position;
   }
 
   /// 移動させる
@@ -163,7 +174,7 @@ class MySprite extends SpriteAnimationComponent
         }
       }
       position -= overlapDistance;
-      print("over:" + overlapDistance.toString());
+      // print("over:" + overlapDistance.toString());
     });
   }
 

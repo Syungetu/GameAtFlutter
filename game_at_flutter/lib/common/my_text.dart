@@ -5,8 +5,11 @@ import 'package:flutter/cupertino.dart';
 
 /// テキスト表示
 class MyText extends TextBoxComponent with HasGameRef {
+  // 適応させる座標系
+  PositionType posType = PositionType.viewport;
+
   // コンストラクタ
-  MyText(TextBoxConfig boxConfig) : super(boxConfig: boxConfig);
+  MyText(TextBoxConfig boxConfig, this.posType) : super(boxConfig: boxConfig);
 
   /// 更新処理
   @override
@@ -28,6 +31,7 @@ class MyText extends TextBoxComponent with HasGameRef {
       ),
     );
     textRenderer = tP;
+    positionType = posType;
   }
 
   /// 座標を変更する
