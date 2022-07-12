@@ -245,7 +245,7 @@ class MyGameMain extends FlameGame
     // 敵の動きを作成
     EnemyMoveController enemyMoveControllers = new EnemyMoveController(
         enemySprite, playerSprite, directions,
-        directionsIndex: startIndex);
+        directionsIndex: startIndex, velocity: 50.0);
     enemyMoveControllerList.add(enemyMoveControllers);
 
     // 開始座標設定
@@ -279,7 +279,6 @@ class MyGameMain extends FlameGame
         }
       }
     }
-    isGameClear = true;
 
     // 時間切れ
     if (gameCount <= 0) {
@@ -299,7 +298,7 @@ class MyGameMain extends FlameGame
         uiGameEndText!.SetText("時間切れ……", Colors.red, 48);
         uiGameEndText!.GetPos(new Vector2(80, 380));
       }
-      gameEndButton!.GetPos(new Vector2(-5, 350));
+      gameEndButton!.GetPos(new Vector2(100, 700));
       gameEndButton!.SetText();
 
       isShowGameEndImage = true;
@@ -326,7 +325,7 @@ class MyGameMain extends FlameGame
 
     if (myJoystickController!.delta.isZero() != true) {
       // スティックが倒されている
-      playerSprite!.SetMove((myJoystickController!.GetValue() * 10.0));
+      playerSprite!.SetMove((myJoystickController!.GetValue() * 50.0));
     }
 
     String tt = "FPS:" + (6.0 / dt).toStringAsFixed(2) + "\n";

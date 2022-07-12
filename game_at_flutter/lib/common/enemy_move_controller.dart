@@ -39,13 +39,20 @@ class EnemyMoveController {
             (moveSprite!.SetPos().y - nowRoute.y));
 
     // 距離が近ければ次の目的地に変更する
-    if (dis <= 1.0) {
+    if (dis < 1.0) {
       directionsIndex++;
       if (directionsIndex >= directions.length) {
         // リストを超えていた場合は０に戻す
         directionsIndex = 0;
       }
     }
+
+    // 新しい目的地に変更する
+    nowRoute = directions[directionsIndex];
+    dis = math.sqrt((moveSprite!.SetPos().x - nowRoute.x) *
+            (moveSprite!.SetPos().x - nowRoute.x) +
+        (moveSprite!.SetPos().y - nowRoute.y) *
+            (moveSprite!.SetPos().y - nowRoute.y));
 
     //移動する
     Vector2 spriteVelocity = Vector2.zero();

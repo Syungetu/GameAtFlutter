@@ -91,12 +91,9 @@ class MySpriteAnimation extends SpriteAnimationComponent
   @override
   void update(double dt) {
     super.update(dt);
-    // 更新速度
-    double updateSpeed = 10.0 * dt;
-
     // 移動
     if (isCollisionHit == false) {
-      position += verocity * updateSpeed;
+      position += verocity * dt;
     }
     verocity = Vector2.zero();
     isCollisionHit = false;

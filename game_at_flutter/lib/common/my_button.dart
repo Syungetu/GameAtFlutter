@@ -39,6 +39,7 @@ class MyButton extends PositionComponent with HasGameRef {
   ///
   @override
   Future<void>? onLoad() async {
+    positionType = posType;
     // ボタン画像の設定
     pressedSprite = MyUIImage(pressedImagePath, spritSize);
     pressedSprite!.position = Vector2.zero();
@@ -53,6 +54,7 @@ class MyButton extends PositionComponent with HasGameRef {
       size: spritSize,
       position: Vector2.zero(),
     );
+    buttonComponent!.positionType = posType;
 
     size = spritSize;
 
