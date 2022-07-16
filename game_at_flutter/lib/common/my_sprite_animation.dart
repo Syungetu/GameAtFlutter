@@ -7,6 +7,22 @@ import 'package:flame/collisions.dart';
 import 'package:flame/geometry.dart';
 import 'package:flame/palette.dart';
 
+import 'common_system.dart';
+import 'enemy_field_of_view_controller.dart';
+import 'my_map_door.dart';
+
+/// キャラの種類
+enum SpriteType {
+  // プレイヤー
+  Player,
+  // 敵
+  Enemy,
+  // その他
+  Other,
+  // ドアの判定
+  Door,
+}
+
 /// アニメーション付きのスプライト表示
 class MySpriteAnimation extends SpriteAnimationComponent
     with HasGameRef, CollisionCallbacks {
@@ -36,13 +52,15 @@ class MySpriteAnimation extends SpriteAnimationComponent
   Vector2 buffPosition = Vector2.zero();
   // 適応させる座標系
   PositionType posType = PositionType.game;
+  // オブジェクト種類
+  SpriteType spriteType = SpriteType.Other;
 
   // デバッグ用テキスト
   String debugText = "";
 
   /// コンストラクタ
   /// [imagePath] 表示したい画像パスを入力
-  MySpriteAnimation(this.imagePath, this.spritSize,
+  MySpriteAnimation(this.imagePath, this.spritSize, this.spriteType,
       {this.animationSpeed = 0.15, this.posType = PositionType.game});
 
   /// 読み込み処理
@@ -75,8 +93,10 @@ class MySpriteAnimation extends SpriteAnimationComponent
       position: Vector2.zero(),
       size: spritSize,
     );
-    // hitBox.renderShape = true;
-    // hitBox.paint = BasicPalette.green.withAlpha(100).paint();
+    if (CommonSystem.isShowCharterHitBox == true) {
+      hitBox.renderShape = true;
+      hitBox.paint = BasicPalette.green.withAlpha(100).paint();
+    }
     await add(hitBox);
 
     buffPosition = Vector2.zero();
@@ -141,6 +161,15 @@ class MySpriteAnimation extends SpriteAnimationComponent
   @override
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollision(intersectionPoints, other);
+
+    if (other is EnemyFieldOfViewController) {
+      // 視野判定なので処理しない
+      return;
+    }
+    if (other is KeyOpenProcessing) {
+      // ドアの開閉用の判定なので処理しない
+      return;
+    }
 
     isCollisionHit = false;
 

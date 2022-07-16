@@ -15,6 +15,9 @@ import 'common/my_background_layer.dart';
 import 'common/enemy_move_controller.dart';
 import 'common/my_ui_image.dart';
 import 'common/my_button.dart';
+import 'common/enemy_field_of_view_controller.dart';
+import 'common/my_map_door.dart';
+import 'common/key_controller.dart';
 
 /// ゲームメイン
 class GameMainPage extends StatefulWidget {
@@ -53,18 +56,30 @@ class MyGameMain extends FlameGame
   List<MySpriteAnimation?> otherSprite = [null];
   // 敵の移動処理
   List<EnemyMoveController?> enemyMoveControllerList = [null];
+  // 敵の視線処理
+  List<EnemyFieldOfViewController?> enemyFieldOfViewControllerList = [null];
   // デバッグ用テキスト
   MyText? debugText = null;
   // マップチップ
   MyMapChip? mapChip = null;
+  // ドア処理
+  List<MyMapDoor?> mapDoorList = [null];
+  // 鍵設置処理
+  List<KeyController?> mapKeyList = [null];
   // ジョイスティック
   MyJoystickController? myJoystickController = null;
+  // 調べるボタン
+  MyButton? searchButton = null;
   // バックグラウンドレイヤー
   MyBackgroundLayer? backgroundLayer = null;
   // 上に表示するUI画像
   MyUIImage? headerUIWindow = null;
   // ui用テキスト
   MyText? uiText = null;
+  // メッセージUI画像
+  MyUIImage? messageUIWindow = null;
+  // メッセージui用テキスト
+  MyText? messageUiText = null;
   // ゲームオーバー画像
   MyUIImage? gameOverImage = null;
   // ゲームクリア画像
@@ -84,6 +99,11 @@ class MyGameMain extends FlameGame
   bool isShowGameEndImage = false;
   // 敵に見つかったかどうか
   bool isEnemyFound = false;
+
+  // 取得した鍵リスト
+  List<int> _haveKeyList = [];
+  // メッセージ表示時間
+  double messageUIShowCount = 0;
 
   // 敵のルート1
   List<Vector2> EnemyDirections1 = [
@@ -116,6 +136,75 @@ class MyGameMain extends FlameGame
     new Vector2(1017, 406),
   ];
 
+  // ドア配置
+  List<Vector2> DoorPosList = [
+    // 独房
+    new Vector2(96, 192),
+    new Vector2(256, 192),
+    new Vector2(416, 192),
+    // 小部屋
+    new Vector2(352, 292),
+    new Vector2(384, 292),
+    // 大部屋上
+    new Vector2(768, 352),
+    new Vector2(800, 352),
+    // 大部屋下
+    new Vector2(768, 448),
+    new Vector2(800, 448),
+    // 出口
+    new Vector2(1088, 640),
+  ];
+  // ドアの鍵番号
+  List<int> DoorKeyIndexList = [
+    // 独房
+    1,
+    1,
+    1,
+    // 小部屋
+    4,
+    4,
+    // 大部屋上
+    2,
+    2,
+    // 大部屋下
+    3,
+    3,
+    // 出口
+    5,
+  ];
+
+  // 鍵の位置
+  List<Vector2> KeyPosList = [
+    // 独房
+    new Vector2(128, 96),
+    // 大部屋上
+    new Vector2(352, 672),
+    // 大部屋下
+    new Vector2(704, 224),
+    // 小部屋
+    new Vector2(928, 608),
+    // 出口
+    new Vector2(288, 352),
+  ];
+  // 鍵の番号
+  List<int> KeyIndexList = [
+    1,
+    2,
+    3,
+    4,
+    5,
+  ];
+  // 鍵の名称
+  List<String> KeyNameList = [
+    "なし",
+    "独房の鍵",
+    "ロッカー室の鍵",
+    "準備倉庫室の鍵",
+    "モニター室の鍵",
+    "出口の鍵"
+  ];
+
+  /// コンストラクタ
   MyGameMain() : super();
 
   /// 読み込み処理
@@ -140,22 +229,37 @@ class MyGameMain extends FlameGame
     backgroundLayer = new MyBackgroundLayer(mapChip!);
 
     // プレイヤーオブジェクト
-    playerSprite =
-        new MySpriteAnimation("character/player_01.png", Vector2(32.0, 32.0));
+    playerSprite = new MySpriteAnimation(
+        "character/player_01.png", Vector2(32.0, 32.0), SpriteType.Player);
     await add(playerSprite!);
     playerSprite!.GetPos(Vector2(94, 108));
 
     otherSprite.clear();
     enemyMoveControllerList.clear();
-    for (int n = 1; n <= 4; n++) {
+    enemyFieldOfViewControllerList.clear();
+    for (int n = 1; n <= 1; n++) {
       MySpriteAnimation childOtherSprite = new MySpriteAnimation(
-          "character/enemy_0" + n.toString() + ".png", Vector2(32.0, 32.0));
+          "character/enemy_0" + n.toString() + ".png",
+          Vector2(32.0, 32.0),
+          SpriteType.Enemy);
       await add(childOtherSprite);
       otherSprite.add(childOtherSprite);
+
+      // 敵の視線を設定
+      EnemyFieldOfViewController fieldOfView = new EnemyFieldOfViewController(
+          childOtherSprite, playerSprite, Sethitprocessing,
+          viewingDistance: 300.0);
+      enemyFieldOfViewControllerList.add(fieldOfView);
+      await add(fieldOfView);
 
       // 敵の動きを作成
       EnemyRouteSetting(n, childOtherSprite, playerSprite!);
     }
+
+    //ドアを配置する
+    await SetPutDoor();
+    // 鍵を配置する
+    SetPutKey();
 
     debugText = new MyText(
       new TextBoxConfig(
@@ -175,6 +279,16 @@ class MyGameMain extends FlameGame
         margin: EdgeInsets.only(left: 40.0, bottom: 40.0));
     await add(myJoystickController!);
 
+    // ボタンを追加する
+    searchButton = new MyButton(
+        "windows/button_001.png",
+        "windows/button_001_hover.png",
+        "\n調べる",
+        Vector2(108, 96),
+        onPushsearchButtonPressed);
+    searchButton!.GetPos(new Vector2(270, 680));
+    await add(searchButton!);
+
     // 上部のUIを表示
     headerUIWindow =
         new MyUIImage("windows/long_horror_gr.png", Vector2(566, 53));
@@ -190,6 +304,25 @@ class MyGameMain extends FlameGame
     );
     uiText!.SetText("残り時間：" + gameCount.toStringAsFixed(0), Colors.white, 21.0);
     await add(uiText!);
+
+    // メッセージUIを表示
+    messageUIWindow =
+        new MyUIImage("windows/long_horror_gr.png", Vector2(566, 53));
+    await add(messageUIWindow!);
+    messageUIWindow!.GetPos(new Vector2(0, viewSize.height / 2.0));
+    messageUIWindow!.GetSize(new Vector2(viewSize.width, 53));
+    messageUIWindow!.scale = new Vector2(0, 0);
+    // メッセージUI用のテキスト
+    messageUiText = new MyText(
+      new TextBoxConfig(
+        maxWidth: 500,
+      ),
+      PositionType.viewport,
+    );
+    messageUiText!.SetText("", Colors.white, 21.0);
+    messageUiText!.GetPos(new Vector2(10, viewSize.height / 2.0));
+    messageUiText!.scale = new Vector2(0, 0);
+    await add(messageUiText!);
 
     gameOverImage =
         new MyUIImage("windows/GameOverImage.png", Vector2(540, 960));
@@ -216,6 +349,9 @@ class MyGameMain extends FlameGame
         "　　　終了する",
         Vector2(234, 53),
         OnGameEndProcessing);
+
+    _haveKeyList.clear();
+    messageUIShowCount = 0;
 
     await super.onLoad();
   }
@@ -252,6 +388,33 @@ class MyGameMain extends FlameGame
     enemySprite.GetPos(directions[startIndex]);
   }
 
+  /// ドアを配置する
+  Future<void> SetPutDoor() async {
+    mapDoorList.clear();
+    // リストからドアを配置する
+    DoorPosList.forEach((element) async {
+      MyMapDoor door = new MyMapDoor(
+          "tiles/door.png", new Vector2.zero(), new Vector2(32, 64), 1);
+
+      door.GetPos(element);
+      await add(door);
+
+      mapDoorList.add(door);
+    });
+  }
+
+  /// 鍵を設置する
+  void SetPutKey() {
+    mapKeyList.clear();
+    int index = 0;
+    KeyPosList.forEach((element) {
+      KeyController keyC =
+          new KeyController(KeyIndexList[index], element + Vector2(16, 16));
+      mapKeyList.add(keyC);
+      index++;
+    });
+  }
+
   /// ゲームに追加する
   @override
   void onMount() {
@@ -273,11 +436,16 @@ class MyGameMain extends FlameGame
     if (isGameClear == false) {
       if (gameCount > 0) {
         // ゲーム的に残り時間をーにしない
-        gameCount -= dt;
+        //gameCount -= dt;
         if (gameCount <= 0) {
           gameCount = 0;
         }
       }
+    }
+
+    // メッセージウインドウのカウント
+    if (messageUIShowCount > 0) {
+      messageUIShowCount -= dt;
     }
 
     // 時間切れ
@@ -323,13 +491,19 @@ class MyGameMain extends FlameGame
       }
     }
 
-    if (myJoystickController!.delta.isZero() != true) {
+    if (myJoystickController!.delta.isZero() != true &&
+        isGameEnd == false &&
+        isGameClear == false) {
       // スティックが倒されている
-      playerSprite!.SetMove((myJoystickController!.GetValue() * 50.0));
+      playerSprite!.SetMove((myJoystickController!.GetValue() * 75.0));
     }
 
     String tt = "FPS:" + (6.0 / dt).toStringAsFixed(2) + "\n";
-    tt += "Player " + playerSprite!.SetPos().toString() + "\n";
+    tt += "Player X:" +
+        playerSprite!.SetPos().x.toStringAsFixed(2) +
+        " Y:" +
+        playerSprite!.SetPos().y.toStringAsFixed(2) +
+        "\n";
     //tt += "Enemy " + otherSprite!.GetDebugText() + "\n";
     debugText!.SetText(tt, Colors.green, 21.0);
     debugText!.GetPos(new Vector2(0, 250));
@@ -338,17 +512,84 @@ class MyGameMain extends FlameGame
     uiText!.SetText("残り時間：" + gameCount.toStringAsFixed(0), Colors.white, 21.0);
     uiText!.GetPos(new Vector2(10, 18));
 
-    // 敵を動かす
-    enemyMoveControllerList.forEach((element) {
-      element!.SetMove();
-    });
+    // 敵の処理
+    if (isGameEnd == false && isGameClear == false) {
+      // 敵を動かす
+      enemyMoveControllerList.forEach((element) {
+        element!.SetMove();
+      });
+      // 目線判定をONにする
+      enemyFieldOfViewControllerList.forEach((element) {
+        element!.isPlay = true;
+      });
+    } else {
+      // 目線判定をONにする
+      enemyFieldOfViewControllerList.forEach((element) {
+        element!.isPlay = false;
+      });
+    }
 
     // カメラ設定
     camera.followComponent(playerSprite!);
+
+    // メッセージUI設定
+    SetShowMessageUI();
 
     super.update(dt);
   }
 
   /// ゲーム終了時に呼ばれる関数
   void OnGameEndProcessing() {}
+
+  /// 敵に見つかった時の処理
+  void Sethitprocessing() {
+    isEnemyFound = true;
+  }
+
+  /// 調べるボタンを押した時
+  void onPushsearchButtonPressed() {
+    print("調べるボタンを押した");
+
+    // 鍵を見つける
+    for (KeyController? element in mapKeyList) {
+      int keyID = element!.GetKey(playerSprite!.SetPos());
+      if (keyID == -1) {
+        // 鍵は見つからなかった
+        continue;
+      }
+      if (_haveKeyList.indexWhere((e) => e == keyID) > -1) {
+        // すでに持っている
+        continue;
+      }
+      _haveKeyList.add(keyID);
+      print("鍵を取得した:" + keyID.toString());
+      SetMessageText(KeyNameList[keyID] + "を見つけました！");
+    }
+
+    // ドアを開ける
+    mapDoorList.forEach((element) {
+      if (element!.SetDoorOpen(_haveKeyList) == true) {
+        // ドアを開けた
+        SetMessageText("鍵を解除してドアを開けました！");
+      }
+    });
+  }
+
+  void SetMessageText(String mes) {
+    messageUIShowCount = 5.0;
+    messageUiText!.SetText(mes, Colors.white, 21.0);
+  }
+
+  /// メッセージUIを表示させる
+  void SetShowMessageUI() {
+    if (messageUIShowCount <= 0.0) {
+      messageUiText!.SetText("", Colors.white, 21.0);
+      messageUIWindow!.scale = new Vector2(0, 0);
+      messageUiText!.scale = new Vector2(0, 0);
+      return;
+    }
+
+    messageUIWindow!.scale = new Vector2(1.0, 1.0);
+    messageUiText!.scale = new Vector2(1.0, 1.0);
+  }
 }

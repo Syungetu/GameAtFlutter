@@ -22,7 +22,7 @@ class MyButton extends PositionComponent with HasGameRef {
   // ボタンコンポーネント
   ButtonComponent? buttonComponent = null;
   // ボタンを押した時の処理
-  Function() onPushPressed;
+  Function? onPushPressed;
   // ボタンスプライト
   MyUIImage? pressedSprite;
   // ボタンスプライト
@@ -49,8 +49,9 @@ class MyButton extends PositionComponent with HasGameRef {
     // ボタンを作成する
     buttonComponent = new ButtonComponent(
       button: pressedSprite,
-      buttonDown: unpressedSprite,
-      onPressed: onPushPressed,
+      //　押したときにボタンの画像を変化させる処理を使うとエラーになるので使わない
+      //     buttonDown: unpressedSprite,
+      onPressed: onPushButton,
       size: spritSize,
       position: Vector2.zero(),
     );
@@ -63,11 +64,18 @@ class MyButton extends PositionComponent with HasGameRef {
           maxWidth: 300,
         ),
         posType);
+    SetText();
 
     add(buttonComponent!);
     add(buttonText!);
 
     await super.onLoad();
+  }
+
+  /// 更新処理
+  @override
+  void update(double dt) {
+    super.update(dt);
   }
 
   /// 座標を変更する
@@ -85,5 +93,12 @@ class MyButton extends PositionComponent with HasGameRef {
   void SetText() {
     buttonText!.SetText(buttonString, Colors.white, 21.0);
     buttonText!.GetPos(new Vector2(10, 0));
+  }
+
+  // ボタンを押された時
+  void onPushButton() {
+    if (onPushPressed != null) {
+      onPushPressed!();
+    }
   }
 }
