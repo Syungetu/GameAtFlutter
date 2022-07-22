@@ -12,7 +12,7 @@ class EnemyMoveController {
   // 現在進んでいる道順番号
   int directionsIndex = 0;
   // 移動速度
-  double velocity = 5.0;
+  double velocity = 0.5;
 
   // 移動させるスプライト
   MySpriteAnimation? moveSprite = null;
@@ -26,7 +26,7 @@ class EnemyMoveController {
   /// [directionsIndex] 巡回の開始位置
   /// [velocity] 移動速度
   EnemyMoveController(this.moveSprite, this.playerSprite, this.directions,
-      {this.directionsIndex = 0, this.velocity = 5.0});
+      {this.directionsIndex = 0, this.velocity = 0.5});
 
   // 移動処理
   void SetMove() {

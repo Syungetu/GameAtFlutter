@@ -1,11 +1,13 @@
-import 'dart:math' as math;
-
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flame/input.dart';
 import 'package:flame/game.dart';
 import 'package:flame/palette.dart';
+import 'package:flame_audio/flame_audio.dart';
+import 'package:flame_audio/audio_pool.dart';
+
+import 'result_text_page.dart';
 
 import 'common/my_sprite_animation.dart';
 import 'common/my_joystick_controller.dart';
@@ -30,9 +32,9 @@ class GameMainPage extends StatefulWidget {
 Size viewSize = new Size(0, 0);
 
 class _GameMainPageState extends State<GameMainPage> {
-  final MyGameMain myGameMain = MyGameMain();
   @override
   Widget build(BuildContext context) {
+    final MyGameMain myGameMain = MyGameMain(context);
     viewSize = MediaQuery.of(context).size;
     return GameWidget(
       game: myGameMain,
@@ -104,6 +106,22 @@ class MyGameMain extends FlameGame
   List<int> _haveKeyList = [];
   // メッセージ表示時間
   double messageUIShowCount = 0;
+  // ビルドコンテキスト
+  BuildContext _buildContext;
+  //メモリに保存している曲リスト
+  List<AudioPool> _AudioPoolList = [];
+  // BGMを再生したかどうか
+  bool isPlayBgm = false;
+  // ゲームクリア音を鳴らしたかどうか
+  bool isPlayGameClear = false;
+
+  // 効果音のパス
+  List<String> _SePathList = [
+    "se/item_get.mp3",
+    "se/door_open.mp3",
+    "se/game_clear.mp3",
+    "se/game_over.mp3"
+  ];
 
   // 敵のルート1
   List<Vector2> EnemyDirections1 = [
@@ -124,16 +142,16 @@ class MyGameMain extends FlameGame
   List<Vector2> EnemyDirections2 = [
     new Vector2(542, 106),
     new Vector2(1017, 106),
-    new Vector2(1017, 406),
-    new Vector2(525, 406),
+    new Vector2(1017, 416),
+    new Vector2(525, 416),
   ];
 
   // 敵のルート3
   List<Vector2> EnemyDirections3 = [
-    new Vector2(525, 406),
+    new Vector2(525, 416),
     new Vector2(525, 714),
     new Vector2(1017, 725),
-    new Vector2(1017, 406),
+    new Vector2(1017, 416),
   ];
 
   // ドア配置
@@ -178,11 +196,11 @@ class MyGameMain extends FlameGame
     // 独房
     new Vector2(128, 96),
     // 大部屋上
-    new Vector2(352, 672),
+    new Vector2(320, 694),
     // 大部屋下
     new Vector2(704, 224),
     // 小部屋
-    new Vector2(928, 608),
+    new Vector2(928, 572),
     // 出口
     new Vector2(288, 352),
   ];
@@ -205,7 +223,7 @@ class MyGameMain extends FlameGame
   ];
 
   /// コンストラクタ
-  MyGameMain() : super();
+  MyGameMain(this._buildContext) : super();
 
   /// 読み込み処理
   ///
@@ -217,6 +235,8 @@ class MyGameMain extends FlameGame
     isGameClear = false;
     isShowGameEndImage = false;
     isEnemyFound = false;
+    isPlayBgm = false;
+    isPlayGameClear = false;
 
     // マップチップ
     mapChip = new MyMapChip(
@@ -237,7 +257,7 @@ class MyGameMain extends FlameGame
     otherSprite.clear();
     enemyMoveControllerList.clear();
     enemyFieldOfViewControllerList.clear();
-    for (int n = 1; n <= 1; n++) {
+    for (int n = 1; n <= 4; n++) {
       MySpriteAnimation childOtherSprite = new MySpriteAnimation(
           "character/enemy_0" + n.toString() + ".png",
           Vector2(32.0, 32.0),
@@ -353,6 +373,17 @@ class MyGameMain extends FlameGame
     _haveKeyList.clear();
     messageUIShowCount = 0;
 
+    // BGMの読み込み
+    FlameAudio.bgm.initialize();
+
+    // 音楽を読み込む
+    int aIndex = 1;
+    for (String path in _SePathList) {
+      AudioPool pool = await FlameAudio.createPool(path, maxPlayers: aIndex);
+      _AudioPoolList.add(pool);
+      aIndex++;
+    }
+
     await super.onLoad();
   }
 
@@ -364,10 +395,14 @@ class MyGameMain extends FlameGame
     List<Vector2> directions = [];
     switch (routeNum) {
       case 1:
+        directions = EnemyDirections1;
+        // 重なると不都合があるので開始位置を振り分ける
+        startIndex = 0;
+        break;
       case 2:
         directions = EnemyDirections1;
         // 重なると不都合があるので開始位置を振り分ける
-        startIndex = routeNum - 1;
+        startIndex = 5;
         break;
       case 3:
         directions = EnemyDirections2;
@@ -381,7 +416,7 @@ class MyGameMain extends FlameGame
     // 敵の動きを作成
     EnemyMoveController enemyMoveControllers = new EnemyMoveController(
         enemySprite, playerSprite, directions,
-        directionsIndex: startIndex, velocity: 50.0);
+        directionsIndex: startIndex, velocity: 5.0);
     enemyMoveControllerList.add(enemyMoveControllers);
 
     // 開始座標設定
@@ -391,28 +426,34 @@ class MyGameMain extends FlameGame
   /// ドアを配置する
   Future<void> SetPutDoor() async {
     mapDoorList.clear();
-    // リストからドアを配置する
-    DoorPosList.forEach((element) async {
-      MyMapDoor door = new MyMapDoor(
-          "tiles/door.png", new Vector2.zero(), new Vector2(32, 64), 1);
 
-      door.GetPos(element);
+    // リストからドアを配置する
+    for (int n = 0; n < DoorPosList.length; n++) {
+      MyMapDoor door = new MyMapDoor(
+        "tiles/door.png",
+        new Vector2.zero(),
+        DoorPosList[n],
+        this,
+        new Vector2(32, 64),
+        DoorKeyIndexList[n],
+      );
+      door.GetPos(DoorPosList[n]);
       await add(door);
 
       mapDoorList.add(door);
-    });
+    }
   }
 
   /// 鍵を設置する
   void SetPutKey() {
     mapKeyList.clear();
     int index = 0;
-    KeyPosList.forEach((element) {
+    for (Vector2 keyPos in KeyPosList) {
       KeyController keyC =
-          new KeyController(KeyIndexList[index], element + Vector2(16, 16));
+          new KeyController(KeyIndexList[index], keyPos + Vector2(16, 16));
       mapKeyList.add(keyC);
       index++;
-    });
+    }
   }
 
   /// ゲームに追加する
@@ -436,7 +477,7 @@ class MyGameMain extends FlameGame
     if (isGameClear == false) {
       if (gameCount > 0) {
         // ゲーム的に残り時間をーにしない
-        //gameCount -= dt;
+        gameCount -= dt;
         if (gameCount <= 0) {
           gameCount = 0;
         }
@@ -446,6 +487,12 @@ class MyGameMain extends FlameGame
     // メッセージウインドウのカウント
     if (messageUIShowCount > 0) {
       messageUIShowCount -= dt;
+    }
+
+    // BGMを再生する
+    if (isPlayBgm == false) {
+      FlameAudio.bgm.play("bgm/shoujorei.mp3");
+      isPlayBgm = true;
     }
 
     // 時間切れ
@@ -470,6 +517,12 @@ class MyGameMain extends FlameGame
       gameEndButton!.SetText();
 
       isShowGameEndImage = true;
+
+      // 効果音再生
+      if (isPlayGameClear == false) {
+        _AudioPoolList[3].start();
+        isPlayGameClear = true;
+      }
     } else {
       if (isGameClear == true) {
         // ゲームクリアの表示
@@ -481,9 +534,15 @@ class MyGameMain extends FlameGame
         gameClearImage!.GetSize(new Vector2(viewSize.width, viewSize.height));
         uiGameEndText!.SetText("脱出成功！！", Colors.yellow, 48);
         uiGameEndText!.GetPos(new Vector2(100, 430));
-        gameEndButton!.GetPos(new Vector2(-5, 350));
+        gameEndButton!.GetPos(new Vector2(100, 700));
         gameEndButton!.SetText();
         isShowGameEndImage = true;
+
+        // 効果音再生
+        if (isPlayGameClear == false) {
+          _AudioPoolList[2].start();
+          isPlayGameClear = true;
+        }
       }
       if (isEnemyFound == true) {
         // 敵に見つかってゲームオーバー
@@ -495,7 +554,7 @@ class MyGameMain extends FlameGame
         isGameEnd == false &&
         isGameClear == false) {
       // スティックが倒されている
-      playerSprite!.SetMove((myJoystickController!.GetValue() * 75.0));
+      playerSprite!.SetMove((myJoystickController!.GetValue() * 10.0));
     }
 
     String tt = "FPS:" + (6.0 / dt).toStringAsFixed(2) + "\n";
@@ -539,7 +598,18 @@ class MyGameMain extends FlameGame
   }
 
   /// ゲーム終了時に呼ばれる関数
-  void OnGameEndProcessing() {}
+  void OnGameEndProcessing() {
+    // BGMを止める
+    FlameAudio.bgm.stop();
+    // 音楽を削除する
+    FlameAudio.audioCache.clearAll();
+
+    // タイトルページに遷移させる
+    Navigator.of(_buildContext)
+        .pushReplacement(MaterialPageRoute(builder: (context) {
+      return ResultTextPage(gameCount, isGameClear);
+    }));
+  }
 
   /// 敵に見つかった時の処理
   void Sethitprocessing() {
@@ -563,6 +633,9 @@ class MyGameMain extends FlameGame
       }
       _haveKeyList.add(keyID);
       print("鍵を取得した:" + keyID.toString());
+      // 効果音再生
+      _AudioPoolList[0].start();
+      // テキスト表示
       SetMessageText(KeyNameList[keyID] + "を見つけました！");
     }
 
@@ -570,13 +643,22 @@ class MyGameMain extends FlameGame
     mapDoorList.forEach((element) {
       if (element!.SetDoorOpen(_haveKeyList) == true) {
         // ドアを開けた
+        // 効果音再生
+        _AudioPoolList[1].start();
+        // テキスト表示
         SetMessageText("鍵を解除してドアを開けました！");
+
+        // 出口の鍵を開けたらClearとする
+        if (element.keyIndex == KeyIndexList[KeyIndexList.length - 1]) {
+          isGameClear = true;
+        }
       }
     });
   }
 
+  /// テキストを表示する
   void SetMessageText(String mes) {
-    messageUIShowCount = 5.0;
+    messageUIShowCount = 3.0;
     messageUiText!.SetText(mes, Colors.white, 21.0);
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'game_main_page.dart';
+import 'start_text_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,40 +33,63 @@ class _MyTitlePageState extends State<MyTitlePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.black,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
             Container(
               margin: EdgeInsets.only(
-                top: 50,
+                top: 150,
+              ),
+              child: Image.asset("assets/images/TitleLogo.png"),
+            ),
+            Container(
+              margin: EdgeInsets.only(
+                top: 5,
               ),
               child: const Text(
-                "Flutter De アクションゲーム",
-                style: TextStyle(fontSize: 30),
+                "敵に見つからずに脱出せよ",
+                style: TextStyle(fontSize: 28, color: Colors.white),
               ),
             ),
             Container(
               margin: EdgeInsets.only(
-                bottom: 50,
+                bottom: 100,
               ),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  primary: Colors.blue.shade300,
-                  onPrimary: Colors.black,
+                  primary: Colors.blueGrey,
+                  onPrimary: Colors.grey,
                   shape: const StadiumBorder(),
                 ),
                 onPressed: () async {
                   // メインページに遷移させる（タイトルページは破棄する）
                   await Navigator.of(context)
                       .pushReplacement(MaterialPageRoute(builder: (context) {
-                    return GameMainPage();
+                    return StartTextPage();
                   }));
                 },
-                child: const Text(
-                  "はじめる",
-                  style: TextStyle(fontSize: 30, color: Colors.white),
+                child: Container(
+                  margin:
+                      EdgeInsets.only(top: 5, bottom: 5, right: 50, left: 50),
+                  child: Text(
+                    "はじめる",
+                    style: TextStyle(fontSize: 30, color: Colors.white),
+                  ),
                 ),
+              ),
+            ),
+            Container(
+              margin: EdgeInsets.only(
+                top: 5,
+                bottom: 5,
+              ),
+              child: const Text(
+                "Copyright © 2021 すたじお・くろす！",
+                style: TextStyle(fontSize: 14, color: Colors.white),
               ),
             ),
           ],

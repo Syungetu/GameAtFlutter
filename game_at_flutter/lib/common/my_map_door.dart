@@ -6,6 +6,7 @@ import 'package:flame/sprite.dart';
 import 'package:flame/collisions.dart';
 import 'package:flame/geometry.dart';
 import 'package:flame/palette.dart';
+import 'package:game_at_flutter/game_main_page.dart';
 
 import 'common_system.dart';
 import 'my_sprite_animation.dart';
@@ -18,10 +19,16 @@ class MyMapDoor extends SpriteComponent with HasGameRef, CollisionCallbacks {
   Vector2 imagePos = Vector2.zero();
   // スプライトサイズ
   Vector2 spritSize = Vector2(32.0, 32.0);
+  // ドアの判定を入れるオブジェクト
+  MyGameMain? myGameMain;
+  // 当たり判定を入れているオブジェクト
+  List<PositionComponent?> positionComponent = [];
   // 当たり判定
-  RectangleHitbox? _hitBox = null;
+  List<RectangleHitbox?> _hitBoxList = [];
   // 鍵解除の処理
   KeyOpenProcessing? keyOpenProcessing = null;
+  // 座標
+  Vector2 _pos = Vector2.zero();
 
   /// 鍵番号
   int keyIndex = -1;
@@ -31,11 +38,15 @@ class MyMapDoor extends SpriteComponent with HasGameRef, CollisionCallbacks {
   /// コンストラクタ
   /// [imagePath] 表示したい画像名
   /// [imagePos] 画像の開始位置
+  /// [_pos] 配置位置
+  /// [myGameMain] ドアの判定入れるオブジェクト
   /// [spritSize] スプライトのサイズ
   /// [keyIndex] 鍵番号
   MyMapDoor(
     this.imagePath,
     this.imagePos,
+    this._pos,
+    this.myGameMain,
     this.spritSize,
     this.keyIndex,
   );
@@ -48,17 +59,33 @@ class MyMapDoor extends SpriteComponent with HasGameRef, CollisionCallbacks {
     sprite =
         await Sprite.load(imagePath, srcPosition: imagePos, srcSize: spritSize);
     size = spritSize;
+    position = _pos;
 
-    // 当たり判定を設定
-    _hitBox = RectangleHitbox(
-      position: Vector2.zero(),
-      size: spritSize,
-    );
-    if (CommonSystem.isShowDoorHitBox == true) {
-      _hitBox!.renderShape = true;
-      _hitBox!.paint = BasicPalette.green.withAlpha(100).paint();
+    _hitBoxList.clear();
+    positionComponent.clear();
+
+    Vector2 sub = spritSize / 32.0;
+    for (int x = 0; x < sub.x.toInt(); x++) {
+      for (int y = 0; y < sub.y.toInt(); y++) {
+        PositionComponent pComponent = new PositionComponent(
+          position: _pos + Vector2(32.0 * x.toDouble(), 32.0 * y.toDouble()),
+          size: Vector2(32.0, 32.0),
+        );
+        // 当たり判定を設定
+        RectangleHitbox hitBox = RectangleHitbox(
+          position: Vector2.zero(),
+          size: Vector2(32.0, 32.0),
+        );
+        if (CommonSystem.isShowDoorHitBox == true) {
+          hitBox.renderShape = true;
+          hitBox.paint = BasicPalette.green.withAlpha(100).paint();
+        }
+        await pComponent.add(hitBox);
+        await myGameMain!.add(pComponent);
+        _hitBoxList.add(hitBox);
+        positionComponent.add(pComponent);
+      }
     }
-    await add(_hitBox!);
 
     // 会議解除用の当たり判定
     keyOpenProcessing = new KeyOpenProcessing(spritSize);
@@ -72,6 +99,9 @@ class MyMapDoor extends SpriteComponent with HasGameRef, CollisionCallbacks {
   /// [pos] Vector2型の座標
   void GetPos(Vector2 pos) {
     position = pos;
+    positionComponent.forEach((element) {
+      element!.position = pos;
+    });
   }
 
   /// ドアを開く
@@ -91,7 +121,9 @@ class MyMapDoor extends SpriteComponent with HasGameRef, CollisionCallbacks {
 
     // 鍵を持っている場合は変化させる
     if (index > -1) {
-      _hitBox!.size = Vector2.zero();
+      for (RectangleHitbox? box in _hitBoxList) {
+        box!.size = Vector2.zero();
+      }
       sprite!.srcSize = Vector2(0, spritSize.y);
       _isOpen = true;
       return true;
@@ -114,7 +146,9 @@ class MyMapDoor extends SpriteComponent with HasGameRef, CollisionCallbacks {
 
     // 鍵を持っている場合は変化させる
     if (index > -1) {
-      _hitBox!.size = spritSize;
+      for (RectangleHitbox? box in _hitBoxList) {
+        box!.size = Vector2(32.0, 32.0);
+      }
       sprite!.srcSize = spritSize;
       _isOpen = false;
       return true;
@@ -146,7 +180,7 @@ class KeyOpenProcessing extends PositionComponent
   ///
   @override
   Future<void>? onLoad() async {
-    // 会議解除用の当たり判定
+    // 解除用の当たり判定
     _openHitBox = RectangleHitbox(
       position: -(spritSize * 0.2) / 2.0,
       size: spritSize * 1.2,

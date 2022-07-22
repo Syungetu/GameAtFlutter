@@ -113,7 +113,7 @@ class MySpriteAnimation extends SpriteAnimationComponent
     super.update(dt);
     // 移動
     if (isCollisionHit == false) {
-      position += verocity * dt;
+      position += verocity;
     }
     verocity = Vector2.zero();
     isCollisionHit = false;

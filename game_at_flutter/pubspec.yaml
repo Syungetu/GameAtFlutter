@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.2
   flame: ^1.1.1
   flame_tiled: ^1.4.0
+  flame_audio: ^1.3.0
 
 dev_dependencies:
   flutter_test:
@@ -65,7 +66,10 @@ flutter:
      - assets/images/windows/
      - assets/images/tiles/
      - assets/tiles/
-
+     - assets/images/
+     - assets/audio/bgm/
+     - assets/audio/se/
+     
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.
 
