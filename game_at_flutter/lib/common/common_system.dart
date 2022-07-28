@@ -3,7 +3,7 @@ import 'dart:ffi';
 /// 共通で管理する変数とか
 class CommonSystem {
   // デバッグモード
-  static bool isDebugMode = true;
+  static bool isDebugMode = false;
   // マップの当たり判定表示
   static bool isShowMapHitBox = false;
   // キャラの当たり判定表示

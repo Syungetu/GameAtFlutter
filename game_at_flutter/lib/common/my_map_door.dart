@@ -9,7 +9,7 @@ import 'package:flame/palette.dart';
 import 'package:game_at_flutter/game_main_page.dart';
 
 import 'common_system.dart';
-import 'my_sprite_animation.dart';
+import 'my_character_sprite_animation.dart';
 
 /// ドアの管理
 class MyMapDoor extends SpriteComponent with HasGameRef, CollisionCallbacks {
@@ -205,7 +205,7 @@ class KeyOpenProcessing extends PositionComponent
     super.onCollisionStart(intersectionPoints, other);
 
     // プレイヤーのみ判定する
-    if (other is MySpriteAnimation) {
+    if (other is MyCharacterSpriteAnimation) {
       if (other.spriteType == SpriteType.Player) {
         _isPlayerHit = true;
         print("開閉できるようになった");
@@ -221,7 +221,7 @@ class KeyOpenProcessing extends PositionComponent
     super.onCollisionEnd(other);
 
     // プレイヤーのみ判定する
-    if (other is MySpriteAnimation) {
+    if (other is MyCharacterSpriteAnimation) {
       if (other.spriteType == SpriteType.Player) {
         _isPlayerHit = false;
         print("開閉できなくなった");

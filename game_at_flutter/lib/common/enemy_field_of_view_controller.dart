@@ -7,7 +7,7 @@ import 'package:flame/palette.dart';
 import 'package:game_at_flutter/game_main_page.dart';
 
 import 'common_system.dart';
-import 'my_sprite_animation.dart';
+import 'my_character_sprite_animation.dart';
 
 /// 敵の視野処理
 class EnemyFieldOfViewController extends PositionComponent
@@ -73,14 +73,13 @@ class EnemyFieldOfViewController extends PositionComponent
     // 座標を更新する
     position = mainComponent!.position + (mainComponent!.size / 2.0);
     // プレイヤーとの角度を計算する
-    Vector2 sub =
-        position - (targetComponent!.position + (targetComponent!.size / 2.0));
+    Vector2 sub = mainComponent!.position - targetComponent!.position;
     double rot = math.atan2(sub.y, sub.x);
     // プレイヤーまでの距離を計算する
     sub = targetComponent!.position - mainComponent!.position;
     double playerDis = math.sqrt(sub.x * sub.x + sub.y * sub.y);
     // プレイヤーに向けて判定を伸ばす
-    size = new Vector2(1.0, playerDis);
+    //size = new Vector2(1.0, viewingDistance);
     angle = rot - (math.pi / 2.0);
 
     // プレイヤーの向きと敵の向きを比較して前方のみの判定にする
@@ -164,7 +163,7 @@ class EnemyFieldOfViewController extends PositionComponent
     }
 
     // プレイヤーはここでは判定しない
-    if (other is MySpriteAnimation) {
+    if (other is MyCharacterSpriteAnimation) {
       if (other.spriteType == SpriteType.Player ||
           other.spriteType == SpriteType.Enemy) {
         return;
@@ -172,15 +171,11 @@ class EnemyFieldOfViewController extends PositionComponent
     }
 
     // マップの当たり判定を取得
-    if (other.parent is MyGameMain) {
-      intersectionPoints.forEach((element) {
-        Vector2 sub = mainComponent!.position - element;
-        double dis = math.sqrt(sub.x * sub.x + sub.y * sub.y);
-        if (_hitMapChipDis > dis) {
-          // プレイヤーと敵の間により近い位置に壁があった
-          _hitMapChipDis = dis;
-        }
-      });
+    Vector2 sub = mainComponent!.position - other.position;
+    double dis = math.sqrt(sub.x * sub.x + sub.y * sub.y);
+    if (_hitMapChipDis > dis) {
+      // プレイヤーと敵の間により近い位置に壁があった
+      _hitMapChipDis = dis;
     }
   }
 

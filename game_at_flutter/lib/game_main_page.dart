@@ -9,7 +9,8 @@ import 'package:flame_audio/audio_pool.dart';
 
 import 'result_text_page.dart';
 
-import 'common/my_sprite_animation.dart';
+import 'common/common_system.dart';
+import 'common/my_character_sprite_animation.dart';
 import 'common/my_joystick_controller.dart';
 import 'common/my_text.dart';
 import 'common/my_map_chip.dart';
@@ -20,6 +21,7 @@ import 'common/my_button.dart';
 import 'common/enemy_field_of_view_controller.dart';
 import 'common/my_map_door.dart';
 import 'common/key_controller.dart';
+import 'common/my_sprite_animation.dart';
 
 /// ゲームメイン
 class GameMainPage extends StatefulWidget {
@@ -53,9 +55,9 @@ class MyGameMain extends FlameGame
   double velocity = 5.0;
 
   // プレイヤースプライト
-  MySpriteAnimation? playerSprite = null;
+  MyCharacterSpriteAnimation? playerSprite = null;
   // 敵スプライト
-  List<MySpriteAnimation?> otherSprite = [null];
+  List<MyCharacterSpriteAnimation?> otherSprite = [null];
   // 敵の移動処理
   List<EnemyMoveController?> enemyMoveControllerList = [null];
   // 敵の視線処理
@@ -68,6 +70,8 @@ class MyGameMain extends FlameGame
   List<MyMapDoor?> mapDoorList = [null];
   // 鍵設置処理
   List<KeyController?> mapKeyList = [null];
+  // 鍵の表示処理
+  List<MySpriteAnimation?> keyItemSpriteAnimationList = [null];
   // ジョイスティック
   MyJoystickController? myJoystickController = null;
   // 調べるボタン
@@ -249,7 +253,7 @@ class MyGameMain extends FlameGame
     backgroundLayer = new MyBackgroundLayer(mapChip!);
 
     // プレイヤーオブジェクト
-    playerSprite = new MySpriteAnimation(
+    playerSprite = new MyCharacterSpriteAnimation(
         "character/player_01.png", Vector2(32.0, 32.0), SpriteType.Player);
     await add(playerSprite!);
     playerSprite!.GetPos(Vector2(94, 108));
@@ -258,10 +262,11 @@ class MyGameMain extends FlameGame
     enemyMoveControllerList.clear();
     enemyFieldOfViewControllerList.clear();
     for (int n = 1; n <= 4; n++) {
-      MySpriteAnimation childOtherSprite = new MySpriteAnimation(
-          "character/enemy_0" + n.toString() + ".png",
-          Vector2(32.0, 32.0),
-          SpriteType.Enemy);
+      MyCharacterSpriteAnimation childOtherSprite =
+          new MyCharacterSpriteAnimation(
+              "character/enemy_0" + n.toString() + ".png",
+              Vector2(32.0, 32.0),
+              SpriteType.Enemy);
       await add(childOtherSprite);
       otherSprite.add(childOtherSprite);
 
@@ -388,8 +393,8 @@ class MyGameMain extends FlameGame
   }
 
   /// 敵の巡回ルートを振り分ける
-  void EnemyRouteSetting(int routeNum, MySpriteAnimation enemySprite,
-      MySpriteAnimation playerSprite) {
+  void EnemyRouteSetting(int routeNum, MyCharacterSpriteAnimation enemySprite,
+      MyCharacterSpriteAnimation playerSprite) {
     // 巡回ルート設定
     int startIndex = 0;
     List<Vector2> directions = [];
@@ -449,9 +454,20 @@ class MyGameMain extends FlameGame
     mapKeyList.clear();
     int index = 0;
     for (Vector2 keyPos in KeyPosList) {
+      // 鍵の処理
       KeyController keyC =
           new KeyController(KeyIndexList[index], keyPos + Vector2(16, 16));
       mapKeyList.add(keyC);
+      // 鍵の表示
+      MySpriteAnimation keySprite = new MySpriteAnimation(
+        "pipo-hikarimono001.png",
+        new Vector2(32, 32),
+        SpriteType.Other,
+      );
+      keySprite.GetPos(keyPos);
+      add(keySprite);
+
+      keyItemSpriteAnimationList.add(keySprite);
       index++;
     }
   }
@@ -556,17 +572,18 @@ class MyGameMain extends FlameGame
       // スティックが倒されている
       playerSprite!.SetMove((myJoystickController!.GetValue() * 10.0));
     }
-
-    String tt = "FPS:" + (6.0 / dt).toStringAsFixed(2) + "\n";
-    tt += "Player X:" +
-        playerSprite!.SetPos().x.toStringAsFixed(2) +
-        " Y:" +
-        playerSprite!.SetPos().y.toStringAsFixed(2) +
-        "\n";
-    //tt += "Enemy " + otherSprite!.GetDebugText() + "\n";
-    debugText!.SetText(tt, Colors.green, 21.0);
-    debugText!.GetPos(new Vector2(0, 250));
-
+    // デバッグテキスト表示
+    if (CommonSystem.isDebugMode == true) {
+      String tt = "FPS:" + (6.0 / dt).toStringAsFixed(2) + "\n";
+      tt += "Player X:" +
+          playerSprite!.SetPos().x.toStringAsFixed(2) +
+          " Y:" +
+          playerSprite!.SetPos().y.toStringAsFixed(2) +
+          "\n";
+      //tt += "Enemy " + otherSprite!.GetDebugText() + "\n";
+      debugText!.SetText(tt, Colors.green, 21.0);
+      debugText!.GetPos(new Vector2(0, 250));
+    }
     // ゲーム時間表示
     uiText!.SetText("残り時間：" + gameCount.toStringAsFixed(0), Colors.white, 21.0);
     uiText!.GetPos(new Vector2(10, 18));
@@ -595,6 +612,15 @@ class MyGameMain extends FlameGame
     SetShowMessageUI();
 
     super.update(dt);
+  }
+
+  /// 削除処理
+  @override
+  void onRemove() {
+    // BGMを止める
+    FlameAudio.bgm.stop();
+    // 音楽を削除する
+    FlameAudio.audioCache.clearAll();
   }
 
   /// ゲーム終了時に呼ばれる関数
@@ -635,6 +661,10 @@ class MyGameMain extends FlameGame
       print("鍵を取得した:" + keyID.toString());
       // 効果音再生
       _AudioPoolList[0].start();
+      // 鍵の表示を消す
+      if (keyItemSpriteAnimationList[keyID] != null) {
+        remove(keyItemSpriteAnimationList[keyID]!);
+      }
       // テキスト表示
       SetMessageText(KeyNameList[keyID] + "を見つけました！");
     }

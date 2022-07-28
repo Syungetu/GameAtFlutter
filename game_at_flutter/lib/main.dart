@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'start_text_page.dart';
+import 'my_license_page.dart';
 
 void main() {
+  // 広告周りの初期化
+  WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize();
+
   runApp(const MyApp());
 }
 
@@ -55,9 +61,11 @@ class _MyTitlePageState extends State<MyTitlePage> {
                 style: TextStyle(fontSize: 28, color: Colors.white),
               ),
             ),
+            // 始めるボタン
             Container(
               margin: EdgeInsets.only(
-                bottom: 100,
+                top: 40,
+                bottom: 10,
               ),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -82,6 +90,35 @@ class _MyTitlePageState extends State<MyTitlePage> {
                 ),
               ),
             ),
+            // ライセンス
+            Container(
+              margin: EdgeInsets.only(
+                bottom: 40,
+              ),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  primary: Colors.blueGrey,
+                  onPrimary: Colors.grey,
+                  shape: const StadiumBorder(),
+                ),
+                onPressed: () async {
+                  // メインページに遷移させる（タイトルページは破棄する）
+                  await Navigator.of(context)
+                      .pushReplacement(MaterialPageRoute(builder: (context) {
+                    return MyLicensePage();
+                  }));
+                },
+                child: Container(
+                  margin:
+                      EdgeInsets.only(top: 5, bottom: 5, right: 20, left: 20),
+                  child: Text(
+                    "ライセンス表示",
+                    style: TextStyle(fontSize: 21, color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
+            // コピーライト表示
             Container(
               margin: EdgeInsets.only(
                 top: 5,

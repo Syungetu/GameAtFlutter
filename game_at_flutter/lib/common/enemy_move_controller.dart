@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:flame/components.dart';
 
-import 'my_sprite_animation.dart';
+import 'my_character_sprite_animation.dart';
 
 /// 敵の動きを管理する
 class EnemyMoveController {
@@ -15,9 +15,9 @@ class EnemyMoveController {
   double velocity = 0.5;
 
   // 移動させるスプライト
-  MySpriteAnimation? moveSprite = null;
+  MyCharacterSpriteAnimation? moveSprite = null;
   // プレイヤースプライト
-  MySpriteAnimation? playerSprite = null;
+  MyCharacterSpriteAnimation? playerSprite = null;
 
   /// コンストラクタ
   /// [moveSprite] 　移動させるスプライト
